@@ -68,14 +68,27 @@ namespace Swarm_Net
                 double d = web.GetMistake(input, output);
                 if (d < _pbestvalue)
                 {
-                    _pbest = _x;
+                    _pbest = Clone(_x);
                     _pbestvalue = d;
                     if (d < _gbestvalue)
                     {
-                        _gbest = _x;
+                        _gbest = Clone(_x);
                         _gbestvalue = d;
                     }
                 }
+            }
+
+            private double[][,] Clone(double[][,] input)
+            {
+                double[][,] res = new double[input.Length][,];
+                for (int i = 0; i < res.Length; i++)
+                {
+                    res[i] = new double[input[i].GetLength(0), input[i].GetLength(1)];
+                    for (int j = 0; j < res[i].GetLength(0); j++)
+                        for (int k = 0; k < res[i].GetLength(1); k++)
+                            res[i][j, k] = input[i][j, k];
+                }
+                return res;
             }
 
             public int CompareTo(_particle other)
