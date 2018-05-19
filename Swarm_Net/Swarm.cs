@@ -60,6 +60,7 @@ namespace Swarm_Net
                             _x[i][j, k] += _v[i][j, k];
                         }
                 }
+                web.SetWeight(_x);
                 FoundBestCoords(input, output, ref _gbest, ref _gbestvalue);
             }
 
