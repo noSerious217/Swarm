@@ -17,27 +17,20 @@ namespace Swarm_Net
             internal _particle(int[] size)
             {
                 web = new Web(size);
-                int s = 0;
-                for (int i = 1; i < size.Length; i++)
-                {
-                    s += size[i] * size[i - 1];
-                }
                 _x = new double[size.Length][,];
                 _v = new double[size.Length][,];
                 _x[0] = new double[0, 0];
                 _v[0] = new double[0, 0];
-                for (int i = 1; i < _x.Length; i++)
+                for (int i = 1; i < size.Length; i++)
                 {
                     _x[i] = new double[size[i], size[i - 1]];
                     _v[i] = new double[size[i], size[i - 1]];
-                    for (int j = 0; j < size[i]; j++)
-                    {
-                        for (int k = 0; k < size[i - 1]; k++)
+                    for (int j=0;j<size[i];j++)
+                        for (int k=0;k<size[i-1];k++)
                         {
-                            _x[i][j, k] = (Utility.NextDouble() - 0.5) * Utility.Next(50);
-                            _v[i][j, k] = (Utility.NextDouble() - 0.5) * Utility.Next(50);
+                            _x[i][j,k] = (Utility.NextDouble() - 0.5) * 10;
+                            _v[i][j,k] = (Utility.NextDouble() - 0.5) * 10;
                         }
-                    }
                 }
                 web.SetWeight(_x);
             }
@@ -79,10 +72,15 @@ namespace Swarm_Net
                 }
             }
 
+            public int CompareTo(_particle other)
+            {
+                return System.Math.Sign(_pbestvalue - other._pbestvalue);
+            }
+
             private double[][,] Clone(double[][,] input)
             {
                 double[][,] res = new double[input.Length][,];
-                for (int i = 0; i < res.Length; i++)
+                for (int i=0;i<res.Length;i++)
                 {
                     res[i] = new double[input[i].GetLength(0), input[i].GetLength(1)];
                     for (int j = 0; j < res[i].GetLength(0); j++)
@@ -90,11 +88,6 @@ namespace Swarm_Net
                             res[i][j, k] = input[i][j, k];
                 }
                 return res;
-            }
-
-            public int CompareTo(_particle other)
-            {
-                return System.Math.Sign(_pbestvalue - other._pbestvalue);
             }
         }
 
