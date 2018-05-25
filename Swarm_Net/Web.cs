@@ -108,7 +108,7 @@ namespace MLP
 
         public double GetMistake()
         {
-            return _mistake;
+            return Math.Sqrt(_mistake);
         }
 
         public double Teach(double[,] input, double[,] output)
@@ -130,7 +130,7 @@ namespace MLP
                 CalculateMistake(tmp_out);
                 Teach(tmp_out);
             }
-            return _mistake;
+            return GetMistake();
         }
 
         public double[,] GetResult(double[,] input)
@@ -162,7 +162,23 @@ namespace MLP
                     mistake += Math.Pow(output[i, j] - res[i, j], 2);
                 }
             }
-            return mistake;
+            return Math.Sqrt(mistake);
+        }
+
+        public double GetEntropy(double[,] input, double[,] output)
+        {
+            double[,] res = GetResult(input);
+            double mistake = 0;
+            for (int i = 0; i < res.GetLength(0); i++)
+            {
+                for (int j = 0; j < res.GetLength(1); j++)
+                {
+                    double y = (output[i, j] + 1) / 2;
+                    double a = (res[i, j] + 1) / 2;
+                    mistake += Math.Abs(y * Math.Log(a) + (1 - y) * Math.Log(1 - a));
+                }
+            }
+            return -mistake / (output.GetLength(0) * output.GetLength(1));
         }
 
         object ICloneable.Clone()

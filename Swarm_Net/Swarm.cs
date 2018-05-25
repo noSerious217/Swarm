@@ -9,8 +9,8 @@ namespace Swarm_Net
             private Web web;
             private double[][,] _x;
             private double[][,] _v;
-            private const double _a1 = 0.5; // Локальное влияние ускорения
-            private const double _a2 = 0.5; // Глобальное влияние ускорения
+            private const double _a1 = 2.05; // Локальное влияние ускорения
+            private const double _a2 = 2.05; // Глобальное влияние ускорения
             internal double[][,] _pbest;
             internal double _pbestvalue = double.MaxValue;
 
@@ -126,6 +126,11 @@ namespace Swarm_Net
         public double GetMistake(double[,] input, double[,] output)
         {
             return GetWeb().GetMistake(input, output);
+        }
+
+        public double GetEntropy(double[,] input, double[,] output)
+        {
+            return GetWeb().GetEntropy(input, output);
         }
 
         public void AddWeb(Web web)

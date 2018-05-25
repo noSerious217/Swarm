@@ -56,107 +56,134 @@ namespace Swarm_Net
         private static double[,] _input2 = new double[30, 4];
         private static double[,] _output1 = new double[120, 3];
         private static double[,] _output2 = new double[30, 3];
-
+        private static string res_swarm = "res_swarm.txt";
+        private static string res_fiswarm = "res_fiswarm.txt";
+        private static string res_back = "res_back.txt";
+        private static string res_gen = "res_gen.txt";
+        private static int[] size = new int[4] { 4, 4, 3, 3 };
 
         static void Main(string[] args)
         {
             LoadData();
-            Genetic.InputSize = 4;
-            Genetic.HiddenSize = 4;
-            Genetic.OutputSize = 3;
+            Genetic.size = size;
             File.Delete("1.txt");
             File.Delete("2.txt");
             File.Delete("3.txt");
+            File.Delete("4.txt");
             for (int z = 0; z < 20; z++)
             {
                 Console.SetCursorPosition(0, 0);
                 Console.WriteLine(z.ToString());
-                FileStream stream1 = new FileStream("res_swarm.txt", FileMode.Create);
-                //FileStream stream1 = new FileStream("res_gen.txt", FileMode.Create);
-                StreamWriter writer1 = new StreamWriter(stream1);
-                FileStream stream2 = new FileStream("res_genTeach.txt", FileMode.Create);
-                StreamWriter writer2 = new StreamWriter(stream2);
-                FileStream stream3 = new FileStream("res_web.txt", FileMode.Create);
-                StreamWriter writer3 = new StreamWriter(stream3);
-                List<String> res_gen = new List<string>();
-                List<String> res_genTeach = new List<string>();
-                List<String> res_web = new List<string>();
+                FileStream SwarmStream = new FileStream(res_swarm, FileMode.Create);
+                FileStream FISwarmStream = new FileStream(res_fiswarm, FileMode.Create);
+                FileStream BackStream = new FileStream(res_back, FileMode.Create);
+                FileStream GenStream = new FileStream(res_gen, FileMode.Create);
+                StreamWriter SwarmWriter = new StreamWriter(SwarmStream);
+                StreamWriter FISwarmWriter = new StreamWriter(FISwarmStream);
+                StreamWriter BackWriter = new StreamWriter(BackStream);
+                StreamWriter GenWriter = new StreamWriter(GenStream);
+                List<String> tmp_swarm = new List<string>();
+                List<String> tmp_fiswarm = new List<string>();
+                List<String> tmp_back = new List<string>();
+                List<String> tmp_gen = new List<string>();
                 if (File.Exists("1.txt"))
                 {
                     FileStream stream = new FileStream("1.txt", FileMode.Open);
                     StreamReader reader = new StreamReader(stream);
                     while (!reader.EndOfStream)
                     {
-                        res_gen.Add(reader.ReadLine());
+                        tmp_swarm.Add(reader.ReadLine());
                     }
                     stream.Close();
                 }
-                else res_gen.AddRange(new String[1000]);
+                else tmp_swarm.AddRange(new String[1000]);
                 if (File.Exists("2.txt"))
                 {
                     FileStream stream = new FileStream("2.txt", FileMode.Open);
                     StreamReader reader = new StreamReader(stream);
                     while (!reader.EndOfStream)
                     {
-                        res_genTeach.Add(reader.ReadLine());
+                        tmp_fiswarm.Add(reader.ReadLine());
                     }
                     stream.Close();
                 }
-                else res_genTeach.AddRange(new String[1000]);
+                else tmp_fiswarm.AddRange(new String[1000]);
                 if (File.Exists("3.txt"))
                 {
                     FileStream stream = new FileStream("3.txt", FileMode.Open);
                     StreamReader reader = new StreamReader(stream);
                     while (!reader.EndOfStream)
                     {
-                        res_web.Add(reader.ReadLine());
+                        tmp_back.Add(reader.ReadLine());
                     }
                     stream.Close();
                 }
-                else res_web.AddRange(new String[1000]);
-                Swarm swarm = new Swarm(new int[] { 4, 4, 3 });
+                else tmp_back.AddRange(new String[1000]);
+                if (File.Exists("4.txt"))
+                {
+                    FileStream stream = new FileStream("4.txt", FileMode.Open);
+                    StreamReader reader = new StreamReader(stream);
+                    while (!reader.EndOfStream)
+                    {
+                        tmp_gen.Add(reader.ReadLine());
+                    }
+                    stream.Close();
+                }
+                else tmp_gen.AddRange(new String[1000]);
+                Swarm swarm = new Swarm(size);
                 swarm.UpdateCoords(_input1, _output1);
+                FISwarm fiswarm = new FISwarm(size);
+                fiswarm.UpdateCoords(_input1, _output1);
+                Web web = new Web(size);
                 Genetic genetic = new Genetic();
-                Genetic geneticTeach = new Genetic();
-                Web web = new Web(new int[]{4, 4, 3});
-                genetic.Add(web);
-                geneticTeach.Add(web);
-                for (int i=0;i<1000;i++)
+                for (int i = 0; i < 1000; i++)
                 {
-                    web.Teach(_input1, _output1);
                     swarm.Move(_input1, _output1);
-                    res_web[i]+="\t\t"+web.GetMistake(_input2, _output2).ToString();
-                    res_gen[i] += "\t\t" + swarm.GetMistake(_input2, _output2).ToString(); ;
+                    fiswarm.Move(_input1, _output1);
+                    web.Teach(_input1, _output1);
+                    genetic.Generate(_input1, _output1);
+                    tmp_swarm[i] += swarm.GetMistake(_input2, _output2).ToString() + "\t" + swarm.GetEntropy(_input2, _output2).ToString() + "\t\t";
+                    tmp_fiswarm[i] += fiswarm.GetMistake(_input2, _output2).ToString() + "\t" + fiswarm.GetEntropy(_input2, _output2).ToString() + "\t\t";
+                    tmp_back[i] += web.GetMistake(_input2, _output2).ToString() + "\t" + web.GetEntropy(_input2, _output2).ToString() + "\t\t";
+                    tmp_gen[i] += genetic.GetMistake(_input2, _output2).ToString() + "\t" + genetic.GetEntropy(_input2, _output2).ToString() + "\t\t";
                 }
-                for (int i=0;i<res_gen.Count;i++)
+                for (int i = 0; i < tmp_gen.Count; i++)
                 {
-                    writer1.WriteLine(res_gen[i]);
+                    GenWriter.WriteLine(tmp_gen[i]);
                 }
-                for (int i = 0; i < res_genTeach.Count; i++)
+                for (int i = 0; i < tmp_swarm.Count; i++)
                 {
-                    writer2.WriteLine(res_genTeach[i]);
+                    SwarmWriter.WriteLine(tmp_swarm[i]);
                 }
-                for (int i = 0; i < res_web.Count; i++)
+                for (int i = 0; i < tmp_fiswarm.Count; i++)
                 {
-                    writer3.WriteLine(res_web[i]);
+                    FISwarmWriter.WriteLine(tmp_fiswarm[i]);
                 }
-                writer1.Flush();
-                writer2.Flush();
-                writer3.Flush();
-                writer1.Close();
-                writer2.Close();
-                writer3.Close();
-                stream1.Close();
-                stream2.Close();
-                stream3.Close();
+                for (int i = 0; i < tmp_back.Count; i++)
+                {
+                    BackWriter.WriteLine(tmp_back[i]);
+                }
+                GenWriter.Flush();
+                GenWriter.Close();
+                BackWriter.Flush();
+                BackWriter.Close();
+                SwarmWriter.Flush();
+                SwarmWriter.Close();
+                FISwarmWriter.Flush();
+                FISwarmWriter.Close();
                 File.Delete("1.txt");
                 File.Delete("2.txt");
                 File.Delete("3.txt");
-                File.Move("res_swarm.txt", "1.txt");
-                File.Move("res_genTeach.txt", "2.txt");
-                File.Move("res_web.txt", "3.txt");
+                File.Delete("4.txt");
+                File.Move(res_swarm, "1.txt");
+                File.Move(res_fiswarm, "2.txt");
+                File.Move(res_back, "3.txt");
+                File.Move(res_gen, "4.txt");
             }
-            File.Move("1.txt", "res_swarm.txt");
+            File.Move("1.txt", res_swarm);
+            File.Move("2.txt", res_fiswarm);
+            File.Move("3.txt", res_back);
+            File.Move("4.txt", res_gen);
         }
     }
 }

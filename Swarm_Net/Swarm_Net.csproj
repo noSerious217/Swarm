@@ -43,6 +43,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BackPropagation.cs" />
+    <Compile Include="FISwarm.cs" />
     <Compile Include="Genetic.cs" />
     <Compile Include="Neuron.cs" />
     <Compile Include="NeuronLayer.cs" />
