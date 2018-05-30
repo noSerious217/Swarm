@@ -1,6 +1,7 @@
 ﻿using MLP;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -10,8 +11,12 @@ namespace Swarm_Net
 {
     class Program
     {
-        private static void LoadData()
+        /*private static void LoadData()
         {
+            _input1 = new double[120, 4];
+            _input2 = new double[30, 4];
+            _output1 = new double[120, 3];
+            _output2 = new double[30, 3];
             FileStream stream = new FileStream("iris_1.txt", FileMode.Open);
             StreamReader reader = new StreamReader(stream);
             int k = 0;
@@ -50,27 +55,81 @@ namespace Swarm_Net
             }
             reader.Close();
             stream.Close();
+        }*/
+
+        private static void LoadData()
+        {
+            _input1 = new double[196, 15];
+            _input2 = new double[10, 15];
+            _output1 = new double[196, 15];
+            _output2 = new double[10, 15];
+            FileStream stream = new FileStream("zernike.txt", FileMode.Open);
+            StreamReader reader = new StreamReader(stream);
+            int k = 0;
+            while (!reader.EndOfStream)
+            {
+                string s = reader.ReadLine().ToLower().Replace('.',',');
+                string[] data = s.Split('\t',' ');
+                for (int j = 0; j < 15; j++)
+                {
+                    _input1[k, j] = double.Parse(data[j]);
+                }
+                s = reader.ReadLine().ToLower().Replace('.', ',');
+                data = s.Split('\t', ' ');
+                for (int j = 0; j < 15; j++)
+                {
+                    _output1[k, j] = double.Parse(data[j]);
+                }
+                k++;
+                reader.ReadLine();
+            }
+            reader.Close();
+            stream.Close();
+            stream = new FileStream("zernike_test.txt", FileMode.Open);
+            reader = new StreamReader(stream);
+            k = 0;
+            while (!reader.EndOfStream)
+            {
+                string s = reader.ReadLine().ToLower().Replace('.', ',');
+                string[] data = s.Split('\t', ' ');
+                for (int j = 0; j < 15; j++)
+                {
+                    _input2[k, j] = double.Parse(data[j]);
+                }
+                s = reader.ReadLine().ToLower().Replace('.', ',');
+                data = s.Split('\t', ' ');
+                for (int j = 0; j < 15; j++)
+                {
+                    _output2[k, j] = double.Parse(data[j]);
+                }
+                k++;
+                reader.ReadLine();
+            }
+            reader.Close();
+            stream.Close();
         }
 
-        private static double[,] _input1 = new double[120, 4];
-        private static double[,] _input2 = new double[30, 4];
-        private static double[,] _output1 = new double[120, 3];
-        private static double[,] _output2 = new double[30, 3];
+        private static int _count = 100;
+        private static double[,] _input1;
+        private static double[,] _input2;
+        private static double[,] _output1;
+        private static double[,] _output2;
         private static string res_swarm = "res_swarm.txt";
         private static string res_fiswarm = "res_fiswarm.txt";
         private static string res_back = "res_back.txt";
         private static string res_gen = "res_gen.txt";
-        private static int[] size = new int[4] { 4, 4, 3, 3 };
+        private static int[] size = new int[4] { 15, 5, 5, 15 };
 
         static void Main(string[] args)
         {
+
             LoadData();
             Genetic.size = size;
             File.Delete("1.txt");
             File.Delete("2.txt");
             File.Delete("3.txt");
             File.Delete("4.txt");
-            for (int z = 0; z < 20; z++)
+            for (int z = 0; z < 5; z++)
             {
                 Console.SetCursorPosition(0, 0);
                 Console.WriteLine(z.ToString());
@@ -136,16 +195,39 @@ namespace Swarm_Net
                 fiswarm.UpdateCoords(_input1, _output1);
                 Web web = new Web(size);
                 Genetic genetic = new Genetic();
-                for (int i = 0; i < 1000; i++)
+                Stopwatch swarm_stopwatch = new Stopwatch();
+                Stopwatch fiswarm_stopwatch = new Stopwatch();
+                Stopwatch back_stopwatch = new Stopwatch();
+                Stopwatch gen_stopwatch = new Stopwatch();
+                ProgressBar bar = new ProgressBar(_count, 40);
+                int l = 0;
+                bar.SetValue(0);
+                Console.WriteLine(bar);
+                for (int i = 0; i < _count; i++)
                 {
+                    bar.SetValue(i);
+                    if (bar.GetLength()!=l)
+                    {
+                        l = bar.GetLength();
+                        Console.SetCursorPosition(0, 1);
+                        Console.WriteLine(bar);
+                    }
+                    swarm_stopwatch.Restart();
                     swarm.Move(_input1, _output1);
-                    fiswarm.Move(_input1, _output1);
+                    swarm_stopwatch.Stop();
+                    //fiswarm_stopwatch.Restart();
+                    //fiswarm.Move(_input1, _output1);
+                    //fiswarm_stopwatch.Stop();
+                    back_stopwatch.Restart();
                     web.Teach(_input1, _output1);
+                    back_stopwatch.Stop();
+                    gen_stopwatch.Restart();
                     genetic.Generate(_input1, _output1);
-                    tmp_swarm[i] += swarm.GetMistake(_input2, _output2).ToString() + "\t" + swarm.GetEntropy(_input2, _output2).ToString() + "\t\t";
-                    tmp_fiswarm[i] += fiswarm.GetMistake(_input2, _output2).ToString() + "\t" + fiswarm.GetEntropy(_input2, _output2).ToString() + "\t\t";
-                    tmp_back[i] += web.GetMistake(_input2, _output2).ToString() + "\t" + web.GetEntropy(_input2, _output2).ToString() + "\t\t";
-                    tmp_gen[i] += genetic.GetMistake(_input2, _output2).ToString() + "\t" + genetic.GetEntropy(_input2, _output2).ToString() + "\t\t";
+                    gen_stopwatch.Stop();
+                    tmp_swarm[i] += (swarm.GetMistake(_input2, _output2) / (_output2.GetLength(0) * _output2.GetLength(1))).ToString() + "\t" + swarm_stopwatch.ElapsedMilliseconds.ToString() + "\t\t";
+                    //tmp_fiswarm[i] += fiswarm.GetMistake(_input2, _output2).ToString() + "\t" + fiswarm_stopwatch.ElapsedMilliseconds.ToString() + "\t\t";
+                    tmp_back[i] += (web.GetMistake(_input2, _output2) / (_output2.GetLength(0) * _output2.GetLength(1))).ToString() + "\t" + back_stopwatch.ElapsedMilliseconds.ToString() + "\t\t";
+                    tmp_gen[i] += (genetic.GetMistake(_input2, _output2) / (_output2.GetLength(0) * _output2.GetLength(1))).ToString() + "\t" + gen_stopwatch.ElapsedMilliseconds.ToString() + "\t\t";
                 }
                 for (int i = 0; i < tmp_gen.Count; i++)
                 {
@@ -155,10 +237,10 @@ namespace Swarm_Net
                 {
                     SwarmWriter.WriteLine(tmp_swarm[i]);
                 }
-                for (int i = 0; i < tmp_fiswarm.Count; i++)
+                /*for (int i = 0; i < tmp_fiswarm.Count; i++)
                 {
                     FISwarmWriter.WriteLine(tmp_fiswarm[i]);
-                }
+                }*/
                 for (int i = 0; i < tmp_back.Count; i++)
                 {
                     BackWriter.WriteLine(tmp_back[i]);
@@ -184,6 +266,7 @@ namespace Swarm_Net
             File.Move("2.txt", res_fiswarm);
             File.Move("3.txt", res_back);
             File.Move("4.txt", res_gen);
+
         }
     }
 }
