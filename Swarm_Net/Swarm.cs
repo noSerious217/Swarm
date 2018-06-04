@@ -13,14 +13,14 @@ namespace Swarm_Net
             private const double _a1 = 2.05; // Локальное влияние ускорения
             private const double _a2 = 2.05; // Глобальное влияние ускорения
             internal double[][,] _pbest;
-            internal double _pbestvalue = double.MaxValue;    
-            
+            internal double _pbestvalue = double.MaxValue;
+
             private double _avr
             {
                 get
                 {
                     double res = 0;
-                    foreach(double d in queue)
+                    foreach (double d in queue)
                     {
                         res += d;
                     }
@@ -39,11 +39,11 @@ namespace Swarm_Net
                 {
                     _x[i] = new double[size[i], size[i - 1]];
                     _v[i] = new double[size[i], size[i - 1]];
-                    for (int j=0;j<size[i];j++)
-                        for (int k=0;k<size[i-1];k++)
+                    for (int j = 0; j < size[i]; j++)
+                        for (int k = 0; k < size[i - 1]; k++)
                         {
-                            _x[i][j,k] = (Utility.NextDouble() - 0.5)*x;
-                            _v[i][j,k] = (Utility.NextDouble() - 0.5)*v;
+                            _x[i][j, k] = (Utility.NextDouble() - 0.5) * 2 * x;
+                            _v[i][j, k] = (Utility.NextDouble() - 0.5) * 2 * v;
                         }
                 }
                 web.SetWeight(_x);
@@ -96,7 +96,7 @@ namespace Swarm_Net
             private double[][,] Clone(double[][,] input)
             {
                 double[][,] res = new double[input.Length][,];
-                for (int i=0;i<res.Length;i++)
+                for (int i = 0; i < res.Length; i++)
                 {
                     res[i] = new double[input[i].GetLength(0), input[i].GetLength(1)];
                     for (int j = 0; j < res[i].GetLength(0); j++)
@@ -107,15 +107,14 @@ namespace Swarm_Net
             }
         }
 
-        // сделать класс-обертку для сеток, в котором будут координаты и скорости
-        private const int _poolsize = 50;
+        private const int _poolsize = 10;
         private _particle[] _pool = new _particle[_poolsize];
         internal double[][,] _gbest;
         internal double _gbestvalue = double.MaxValue;
         public double XLimit = 2;
         public double VLimit = 1;
 
-        public Swarm(int[] size,double x,double v)
+        public Swarm(int[] size, double x, double v)
         {
             XLimit = x;
             VLimit = v;

@@ -12,8 +12,9 @@ namespace Swarm_Net
         private const int _poolsize = 50;
         private const int _mutatetime = 20;
         private const double _mutate = 0.01;
+        private const double _elite = 0.1;
         private const double _birth = 0.5;
-        private static Random random = new Random();
+        private const int m = 10;
         private List<Web> _pool;
 
         public static int[] size = new int[] { 15, 15, 15 };
@@ -48,10 +49,8 @@ namespace Swarm_Net
         public double Generate(double[,] input, double[,] output)
         {
             foreach (Web w in _pool) w.Clear();
-            for (int i = 0; i < _poolsize * _birth + 1; i++)
-                Birth();
-            for (int i = 0; i < _poolsize * _mutate + 1; i++)
-                Mutate();
+            Birth();
+            Mutate();
             for (int i = 0; i < input.GetLength(0); i++)
             {
                 double[] tmp_in = new double[input.GetLength(1)];
@@ -82,47 +81,77 @@ namespace Swarm_Net
 
         private void Mutate()
         {
-            Web origin = _pool.ElementAt(random.Next(_pool.Count));
-            double[][,] tmp = origin.GetWeight();
-            int time = random.Next(_mutatetime + 1);
-            for (int i = 0; i < time; i++)
+            int length = _pool.Count;
+            for (int z = 0; z < length; z++)
             {
-                int l = random.Next(tmp.Length);
-                int a = random.Next(tmp[l].GetLength(0));
-                int b = random.Next(tmp[l].GetLength(1));
-                if (random.NextDouble() > 0.75) tmp[l][a, b] += 0.5 - random.NextDouble();
-                else tmp[l][a, b] = (0.5 - random.NextDouble()) * random.Next(50);
+                if (Utility.NextDouble() < _mutate)
+                {
+                    Web origin = _pool[z];
+                    double[][,] tmp = origin.GetWeight();
+                    int time = Utility.Next(_mutatetime + 1);
+                    for (int i = 0; i < time; i++)
+                    {
+                        int l = Utility.Next(tmp.Length);
+                        int a = Utility.Next(tmp[l].GetLength(0));
+                        int b = Utility.Next(tmp[l].GetLength(1));
+                        double d = 0;
+                        for (int q = 0; q < m; q++)
+                        {
+                            d += (Utility.NextDouble() < (1 / m)) ? Math.Pow(2, -i) : 0;
+                        }
+                        tmp[l][a, b] += d * Math.Sign(Utility.NextDouble() - 0.5);
+                    }
+                    Web res = new Web(size);
+                    res.SetWeight(tmp);
+                    _pool.Add(res);
+                }
             }
-            Web res = new Web(size);
-            res.SetWeight(tmp);
-            _pool.Add(res);
         }
 
         private void Birth()
         {
-            Web f = _pool.ElementAt(random.Next(_pool.Count));
-            Web m = _pool.ElementAt(random.Next(_pool.Count));
-            double[][,] f_web = f.GetWeight();
-            double[][,] m_web = m.GetWeight();
-            double[][,] res = new double[f_web.Length][,];
-            for (int i = 0; i < res.Length; i++)
+            for (int i = 0; i < _poolsize * _birth + 1; i++)
             {
-                int a = f_web[i].GetLength(0) > m_web[i].GetLength(0) ? m_web[i].GetLength(0) : f_web[i].GetLength(0);
-                int b = (f_web[i].GetLength(1) > m_web[i].GetLength(1)) ? m_web[i].GetLength(1) : f_web[i].GetLength(1);
-                res[i] = new double[a, b];
-                for (int j = 0; j < a; j++)
-                    for (int k = 0; k < b; k++)
-                        res[i][j, k] = random.NextDouble() > 0.5 ? f_web[i][j, k] : m_web[i][j, k];
+                Web f = _pool.ElementAt(Utility.Next(_pool.Count));
+                Web m = _pool.ElementAt(Utility.Next(_pool.Count));
+                double[][,] f_web = f.GetWeight();
+                double[][,] m_web = m.GetWeight();
+                double[][,] res1 = new double[f_web.Length][,];
+                double[][,] res2 = new double[f_web.Length][,];
+                for (int zi = 0; zi < res1.Length; zi++)
+                {
+                    int a = f_web[zi].GetLength(0) > m_web[zi].GetLength(0) ? m_web[zi].GetLength(0) : f_web[zi].GetLength(0);
+                    int b = (f_web[zi].GetLength(1) > m_web[zi].GetLength(1)) ? m_web[zi].GetLength(1) : f_web[zi].GetLength(1);
+                    res1[zi] = new double[a, b];
+                    res2[zi] = new double[a, b];
+                    for (int j = 0; j < a; j++)
+                        for (int k = 0; k < b; k++)
+                        {
+                            double d = Utility.NextDouble();
+                            res1[zi][j, k] = d > 0.5 ? f_web[zi][j, k] : m_web[zi][j, k];
+                            res2[zi][j, k] = d > 0.5 ? m_web[zi][j, k] : f_web[zi][j, k];
+                        }
+                }
+                Web web = new Web(size);
+                web.SetWeight(res1);
+                _pool.Add(web);
+                Web web1 = new Web(size);
+                web1.SetWeight(res2);
+                _pool.Add(web1);
             }
-            Web web = new Web(size);
-            web.SetWeight(res);
-            _pool.Add(web);
         }
 
         private void Selection()
         {
+            List<Web> NewPool = new List<Web>();
             _pool.Sort();
-            while (_pool.Count > _poolsize) _pool.RemoveAt(_pool.Count - 1);
+            for (int i = 0; i < _poolsize * _elite; i++)
+                NewPool.Add(_pool[i]);
+            while (NewPool.Count<_poolsize)
+            {
+                NewPool.Add(_pool.ElementAt(Utility.Next(Utility.Next(_pool.Count))));
+            }
+            _pool = NewPool;
         }
 
         public double[,] GetResult(double[,] input)
