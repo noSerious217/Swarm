@@ -26,11 +26,21 @@ namespace MLP
                 return _web[_web.Length-1].Output;
             }
         }
+        private double a;
 
+        public Web(int[] size, double a)
+        {
+            _web = new NeuronLayer[size.Length];
+            _web[0] = new NeuronLayer(null, size[0],a);
+            for (int i = 1; i < size.Length; i++)
+            {
+                _web[i] = new NeuronLayer(_web[i - 1], size[i],a);
+            }
+        }
         public Web(int[] size)
         {
             _web = new NeuronLayer[size.Length];
-            _web[0] = new NeuronLayer(null, size[0]);
+            _web[0] = new NeuronLayer(null, size[0],a);
             for (int i = 1; i < size.Length; i++)
             {
                 _web[i] = new NeuronLayer(_web[i - 1], size[i]);
@@ -83,10 +93,10 @@ namespace MLP
         public void SetWeight(double[][,] value)
         {
             _web = new NeuronLayer[value.Length];
-            _web[0]=new NeuronLayer(null,1);
+            _web[0]=new NeuronLayer(null,1,a);
             for (int i=1;i<value.Length;i++)
             {
-                _web[i] = new NeuronLayer(_web[i-1],value[i].GetLength(0));
+                _web[i] = new NeuronLayer(_web[i-1],value[i].GetLength(0),a);
                 _web[i].SetWeights(value[i]);
             }
         }
@@ -186,7 +196,7 @@ namespace MLP
             int[] size = new int[_web.Length];
             for (int i = 0; i < size.Length; i++)
                 size[i] = _web[i].Length;
-            Web web = new Web(size);
+            Web web = new Web(size,a);
             web.SetWeight(GetWeight());
             return web;
         }

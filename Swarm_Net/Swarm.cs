@@ -5,28 +5,14 @@ namespace Swarm_Net
     class Swarm
     {
         internal class _particle : System.IComparable<_particle>
-        {
-            private static System.Collections.Queue queue = new System.Collections.Queue();
+        {            
             private Web web;
             private double[][,] _x;
             private double[][,] _v;
-            private const double _a1 = 2.05; // Локальное влияние ускорения
-            private const double _a2 = 2.05; // Глобальное влияние ускорения
+            internal double _a1 = 0.4; // Локальное влияние ускорения
+            internal double _a2 = 0.6; // Глобальное влияние ускорения
             internal double[][,] _pbest;
             internal double _pbestvalue = double.MaxValue;
-
-            private double _avr
-            {
-                get
-                {
-                    double res = 0;
-                    foreach (double d in queue)
-                    {
-                        res += d;
-                    }
-                    return res / queue.Count;
-                }
-            }
 
             internal _particle(int[] size, double x, double v)
             {
@@ -56,8 +42,13 @@ namespace Swarm_Net
                 _v = web.GetWeight();
             }
 
-            internal void Move(double[,] input, double[,] output, ref double[][,] _gbest, ref double _gbestvalue)
+            internal void Move( double[,] input, double[,] output, ref double[][,] _gbest, ref double _gbestvalue)
             {
+                if (_pbestvalue == _gbestvalue)
+                {
+                    int l = 0;
+                    l++;
+                }
                 for (int i = 1; i < _x.Length; i++)
                 {
                     for (int j = 0; j < _x[i].GetLength(0); j++)
@@ -67,15 +58,13 @@ namespace Swarm_Net
                             _x[i][j, k] += _v[i][j, k];
                         }
                 }
-                web.SetWeight(_x);
+                web.SetWeight(Clone(_x));
                 FoundBestCoords(input, output, ref _gbest, ref _gbestvalue);
             }
 
-            internal void FoundBestCoords(double[,] input, double[,] output, ref double[][,] _gbest, ref double _gbestvalue)
+            internal void FoundBestCoords( double[,] input, double[,] output, ref double[][,] _gbest, ref double _gbestvalue)
             {
                 double d = web.GetMistake(input, output);
-                if (queue.Count == _poolsize) queue.Dequeue();
-                queue.Enqueue(d);
                 if (d < _pbestvalue)
                 {
                     _pbest = Clone(_x);
@@ -107,15 +96,31 @@ namespace Swarm_Net
             }
         }
 
-        private const int _poolsize = 10;
-        private _particle[] _pool = new _particle[_poolsize];
+        private int _poolsize;
+        private _particle[] _pool;
         internal double[][,] _gbest;
         internal double _gbestvalue = double.MaxValue;
         public double XLimit = 2;
         public double VLimit = 1;
 
-        public Swarm(int[] size, double x, double v)
+        public Swarm(int poolsize, int[] size, double x, double v,double a1,double a2)
         {
+            _poolsize = poolsize;
+            _pool = new _particle[_poolsize];
+            XLimit = x;
+            VLimit = v;
+            for (int i = 0; i < _poolsize; i++)
+            {
+                _pool[i] = new _particle(size, XLimit, VLimit);
+                _pool[i]._a1 = a1;
+                _pool[i]._a2 = a2;
+            }
+        }
+
+        public Swarm(int poolsize, int[] size, double x, double v)
+        {
+            _poolsize = poolsize;
+            _pool = new _particle[_poolsize];
             XLimit = x;
             VLimit = v;
             for (int i = 0; i < _poolsize; i++)

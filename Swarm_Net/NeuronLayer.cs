@@ -38,13 +38,31 @@ namespace MLP
             }
         }
 
+        public NeuronLayer(NeuronLayer PLayer, int size, double a)
+        {
+            _previousLayer = PLayer;
+            _layer = new Neuron[size];
+            for (int i = 0; i < size; i++)
+            {
+                if (PLayer != null)
+                {
+                    _layer[i] = new Neuron(PLayer.Length);
+                    _layer[i].a = a;
+                }
+                else _layer[i] = new Neuron(1);
+            }
+        }
+
         public NeuronLayer(NeuronLayer PLayer, int size)
         {
             _previousLayer = PLayer;
             _layer = new Neuron[size];
             for (int i = 0; i < size; i++)
             {
-                if (PLayer != null) _layer[i] = new Neuron(PLayer.Length);
+                if (PLayer != null)
+                {
+                    _layer[i] = new Neuron(PLayer.Length);
+                }
                 else _layer[i] = new Neuron(1);
             }
         }
@@ -63,7 +81,7 @@ namespace MLP
                         tmp[j] = weights[i, j];
                     _layer[i].SetWeight(tmp);
                 }
-            } 
+            }
         }
 
         public void SetInput(double[] input)

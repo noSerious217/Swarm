@@ -1,9 +1,11 @@
 ﻿using MLP;
+using Swarm_Utility;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -11,28 +13,57 @@ namespace Swarm_Net
 {
     class Program
     {
-        private static void LoadData(String name)
+        private static void LoadData()
         {
-            FileStream stream = new FileStream(name + ".txt", FileMode.Open);
+            if (File.Exists("mlp.conf"))
+            {
+                System.Xml.Serialization.XmlSerializer xmlreader = new System.Xml.Serialization.XmlSerializer(typeof(Configuration));
+                StreamReader file = new StreamReader(@"mlp.conf");
+                configuration = (Configuration)xmlreader.Deserialize(file);
+                file.Close();
+            }
+            else
+            {
+                configuration = new Configuration();
+                configuration.Filename = "zernike";
+                configuration.BackEnabled = true;
+                configuration.BackInfluence = 0.05;
+                configuration.GenBirth = 0.5;
+                configuration.GenChange = 0.75;
+                configuration.GenElite = 0.1;
+                configuration.GenEnabled = true;
+                configuration.GenM = 20;
+                configuration.GenMutate = 0.01;
+                configuration.GenMutateTime = 20;
+                configuration.GenPoolSize = 50;
+                configuration.Size = new int[4] { 15, 5, 5, 15 };
+                configuration.SwarmA1 = 0.5;
+                configuration.SwarmA2 = 0.5;
+                configuration.SwarmEnabled = true;
+                configuration.SwarmPoolSize = 50;
+                configuration.SwarmVLimit = 0;
+                configuration.SwarmXLimit = 0;
+            }
+            FileStream stream = new FileStream(configuration.Filename + ".txt", FileMode.Open);
             StreamReader reader = new StreamReader(stream);
             List<double[]> input = new List<double[]>();
             List<double[]> output = new List<double[]>();
             while (!reader.EndOfStream)
             {
-                string s = reader.ReadLine().ToLower().Replace('.', ','); 
+                string s = reader.ReadLine().ToLower().Replace('.', ',');
                 string[] data = s.Split('|');
-                data[0]=data[0].Trim('\t');
-                data[1]=data[1].Trim('\t');
+                data[0] = data[0].Trim('\t');
+                data[1] = data[1].Trim('\t');
                 string[] _input = data[0].Split('\t');
                 string[] _output = data[1].Split('\t');
                 double[] tmp = new double[_input.Length];
-                for (int i=0;i<tmp.Length;i++)
+                for (int i = 0; i < tmp.Length; i++)
                 {
                     tmp[i] = double.Parse(_input[i]);
                 }
                 input.Add(tmp);
                 tmp = new double[_output.Length];
-                for (int i=0;i<tmp.Length;i++)
+                for (int i = 0; i < tmp.Length; i++)
                 {
                     tmp[i] = double.Parse(_output[i]);
                 }
@@ -42,18 +73,18 @@ namespace Swarm_Net
             stream.Close();
             _input1 = new double[input.Count, input[0].Length];
             _output1 = new double[output.Count, output[0].Length];
-            for (int i=0;i<input.Count;i++)
+            for (int i = 0; i < input.Count; i++)
             {
-                for (int j=0;j<input[i].Length;j++)
+                for (int j = 0; j < input[i].Length; j++)
                 {
                     _input1[i, j] = input[i][j];
                 }
-                for (int j=0;j<output[i].Length;j++)
+                for (int j = 0; j < output[i].Length; j++)
                 {
                     _output1[i, j] = output[i][j];
                 }
             }
-            stream = new FileStream(name + "_test.txt", FileMode.Open);
+            stream = new FileStream(configuration.Filename + "_test.txt", FileMode.Open);
             reader = new StreamReader(stream);
             input = new List<double[]>();
             output = new List<double[]>();
@@ -187,269 +218,181 @@ namespace Swarm_Net
         //    stream.Close();
         //}
 
-        private static int _webs = 5;
-        private static int _count = 200;
         private static double[,] _input1;
         private static double[,] _input2;
         private static double[,] _output1;
         private static double[,] _output2;
-        private static string res_swarm = "res_swarm.txt";
-        private static string res_fiswarm = "res_fiswarm.txt";
-        private static string res_back = "res_back.txt";
-        private static string res_gen = "res_gen.txt";
-        private static int[] size = new int[4] { 4, 3, 3, 3 };
+        private static string res_swarm = "swarm";
+        private static string res_back = "back";
+        private static string res_gen = "gen";
+        private static string extension = ".txt";
+        private static Configuration configuration;
 
         static void Main(string[] args)
         {
-            LoadData("iris");
-            Genetic.size = size;
+
+            LoadData();
             File.Delete("1.txt");
             File.Delete("2.txt");
             File.Delete("3.txt");
-            File.Delete("4.txt");
-            ProgressBar allBar = new ProgressBar(_webs, 100);
-            for (int z = 0; z < _webs; z++)
+            string dirname = configuration.Filename + '_';
+            for (int i = 0; i < configuration.Size.Length; i++)
+            {
+                dirname += configuration.Size[i].ToString() + ';';
+            }
+            dirname = dirname.TrimEnd(';');
+            Directory.CreateDirectory(dirname);
+            ProgressBar allBar = new ProgressBar(configuration.Webs, 100);
+            for (int z = 0; z < configuration.Webs; z++)
             {
                 allBar.SetValue(z);
                 Console.SetCursorPosition(0, 0);
                 Console.WriteLine(allBar);
-                FileStream SwarmStream = new FileStream(res_swarm, FileMode.Create);
-                FileStream FISwarmStream = new FileStream(res_fiswarm, FileMode.Create);
-                FileStream BackStream = new FileStream(res_back, FileMode.Create);
-                FileStream GenStream = new FileStream(res_gen, FileMode.Create);
-                StreamWriter SwarmWriter = new StreamWriter(SwarmStream);
-                StreamWriter FISwarmWriter = new StreamWriter(FISwarmStream);
-                StreamWriter BackWriter = new StreamWriter(BackStream);
-                StreamWriter GenWriter = new StreamWriter(GenStream);
-                List<String> tmp_swarm = new List<string>();
-                List<String> tmp_fiswarm = new List<string>();
-                List<String> tmp_back = new List<string>();
-                List<String> tmp_gen = new List<string>();
-                if (File.Exists("1.txt"))
+                int n = 0;
+                n += configuration.BackEnabled ? 1 : 0;
+                n += configuration.GenEnabled ? 1 : 0;
+                n += configuration.SwarmEnabled ? 1 : 0;
+                int k = 0;
+                ProgressBar bar = new ProgressBar(n * configuration.Count, 100);
+                if (configuration.BackEnabled)
                 {
-                    FileStream stream = new FileStream("1.txt", FileMode.Open);
-                    StreamReader reader = new StreamReader(stream);
-                    while (!reader.EndOfStream)
+                    FileStream stream = new FileStream(dirname + '\\' + res_back + '_' + configuration.BackInfluence.ToString() + extension, FileMode.Create);
+                    StreamWriter writer = new StreamWriter(stream);
+                    List<String> tmp = new List<string>();
+                    if (File.Exists("1.txt"))
                     {
-                        tmp_swarm.Add(reader.ReadLine());
+                        FileStream fileStream = new FileStream("1.txt", FileMode.Open);
+                        StreamReader reader = new StreamReader(fileStream);
+                        while (!reader.EndOfStream)
+                            tmp.Add(reader.ReadLine());
+                        stream.Close();
                     }
+                    else tmp.AddRange(new String[configuration.Count]);
+                    Web web = new Web(configuration.Size, configuration.BackInfluence);
+                    Stopwatch stopwatch = new Stopwatch();
+                    int l = 0;
+                    bar.SetValue(0);
+                    Console.WriteLine(bar);
+                    for (int i = 0; i < configuration.Count; i++)
+                    {
+                        bar.SetValue(i);
+                        if (bar.GetLength() != l)
+                        {
+                            l = bar.GetLength();
+                            Console.SetCursorPosition(0, 1);
+                            Console.WriteLine(bar);
+                        }
+                        stopwatch.Restart();
+                        web.Teach(_input1, _output1);
+                        stopwatch.Stop();
+                        tmp[i] += (web.GetMistake(_input2, _output2) / (_output2.GetLength(0) * _output2.GetLength(1) - 1)).ToString() + "\t" + stopwatch.ElapsedMilliseconds.ToString() + "\t\t";
+                    }
+                    for (int i = 0; i < configuration.Count; i++)
+                        writer.WriteLine(tmp[i]);
+                    writer.Flush();
+                    writer.Close();
                     stream.Close();
+                    File.Delete("1.txt");
+                    File.Move(dirname + '\\' + res_back + '_' + configuration.BackInfluence.ToString() + extension, "1.txt");
+                    k++;
                 }
-                else tmp_swarm.AddRange(new String[_count]);
-                if (File.Exists("2.txt"))
+                if (configuration.GenEnabled)
                 {
-                    FileStream stream = new FileStream("2.txt", FileMode.Open);
-                    StreamReader reader = new StreamReader(stream);
-                    while (!reader.EndOfStream)
+                    FileStream stream = new FileStream(dirname + '\\' + res_gen + '_' + configuration.GenPoolSize.ToString() + '_' + configuration.GenMutateTime.ToString() + '_' + configuration.GenChange.ToString() + '_' + configuration.GenChange.ToString() + '_' + configuration.GenElite.ToString() + '_' + configuration.GenBirth.ToString() + '_' + configuration.GenM.ToString() + extension, FileMode.Create);
+                    StreamWriter writer = new StreamWriter(stream);
+                    List<String> tmp = new List<string>();
+                    if (File.Exists("2.txt"))
                     {
-                        tmp_fiswarm.Add(reader.ReadLine());
+                        FileStream fileStream = new FileStream("2.txt", FileMode.Open);
+                        StreamReader reader = new StreamReader(fileStream);
+                        while (!reader.EndOfStream)
+                            tmp.Add(reader.ReadLine());
+                        stream.Close();
                     }
+                    else tmp.AddRange(new String[configuration.Count]);
+                    Genetic.size = configuration.Size;
+                    Genetic genetic = new Genetic(configuration.GenPoolSize);
+                    genetic.Mutatetime = configuration.GenMutateTime;
+                    genetic.MutateRate = configuration.GenMutate;
+                    genetic.Change = configuration.GenChange;
+                    genetic.Elite = configuration.GenElite;
+                    genetic.BirthRate = configuration.GenBirth;
+                    genetic.M = configuration.GenM;
+                    Stopwatch stopwatch = new Stopwatch();
+                    int l = 0;
+                    bar.SetValue(k * configuration.Count);
+                    Console.SetCursorPosition(0, 1);
+                    Console.WriteLine(bar);
+                    for (int i = 0; i < configuration.Count; i++)
+                    {
+                        bar.SetValue(k * configuration.Count + i);
+                        if (bar.GetLength() != l)
+                        {
+                            l = bar.GetLength();
+                            Console.SetCursorPosition(0, 1);
+                            Console.WriteLine(bar);
+                        }
+                        stopwatch.Restart();
+                        genetic.Generate(_input1, _output1);
+                        stopwatch.Stop();
+                        tmp[i] += (genetic.GetMistake(_input2, _output2) / (_output2.GetLength(0) * _output2.GetLength(1) - 1)).ToString() + "\t" + stopwatch.ElapsedMilliseconds.ToString() + "\t\t";
+                    }
+                    for (int i = 0; i < configuration.Count; i++)
+                        writer.WriteLine(tmp[i]);
+                    writer.Flush();
+                    writer.Close();
                     stream.Close();
+                    File.Delete("2.txt");
+                    File.Move(dirname + '\\' + res_gen + '_' + configuration.GenPoolSize.ToString() + '_' + configuration.GenMutateTime.ToString() + '_' + configuration.GenChange.ToString() + '_' + configuration.GenChange.ToString() + '_' + configuration.GenElite.ToString() + '_' + configuration.GenBirth.ToString() + '_' + configuration.GenM.ToString() + extension, "2.txt");
+                    k++;
                 }
-                else tmp_fiswarm.AddRange(new String[_count]);
-                if (File.Exists("3.txt"))
+                if (configuration.SwarmEnabled)
                 {
-                    FileStream stream = new FileStream("3.txt", FileMode.Open);
-                    StreamReader reader = new StreamReader(stream);
-                    while (!reader.EndOfStream)
+                    FileStream stream = new FileStream(dirname + '\\' + res_swarm + '_' + configuration.SwarmPoolSize.ToString() + '_' + configuration.SwarmA1.ToString() + '_' + configuration.SwarmA2.ToString() + '_' + configuration.SwarmXLimit.ToString() + '_' + configuration.SwarmVLimit.ToString() + extension, FileMode.Create);
+                    StreamWriter writer = new StreamWriter(stream);
+                    List<String> tmp = new List<string>();
+                    if (File.Exists("3.txt"))
                     {
-                        tmp_back.Add(reader.ReadLine());
+                        FileStream fileStream = new FileStream("3.txt", FileMode.Open);
+                        StreamReader reader = new StreamReader(fileStream);
+                        while (!reader.EndOfStream)
+                            tmp.Add(reader.ReadLine());
+                        stream.Close();
                     }
+                    else tmp.AddRange(new String[configuration.Count]);
+                    Swarm swarm = new Swarm(configuration.SwarmPoolSize, configuration.Size, configuration.SwarmXLimit, configuration.SwarmVLimit, configuration.SwarmA1, configuration.SwarmA2);
+                    swarm.UpdateCoords(_input1, _output1);
+                    Stopwatch stopwatch = new Stopwatch();
+                    int l = 0;
+                    bar.SetValue(k * configuration.Count);
+                    Console.SetCursorPosition(0, 1);
+                    Console.WriteLine(bar);
+                    for (int i = 0; i < configuration.Count; i++)
+                    {
+                        bar.SetValue(k * configuration.Count + i);
+                        if (bar.GetLength() != l)
+                        {
+                            l = bar.GetLength();
+                            Console.SetCursorPosition(0, 1);
+                            Console.WriteLine(bar);
+                        }
+                        stopwatch.Restart();
+                        swarm.Move(_input1, _output1);
+                        stopwatch.Stop();
+                        tmp[i] += (swarm.GetMistake(_input2, _output2) / (_output2.GetLength(0) * _output2.GetLength(1) - 1)).ToString() + "\t" + stopwatch.ElapsedMilliseconds.ToString() + "\t\t";
+                    }
+                    for (int i = 0; i < configuration.Count; i++)
+                        writer.WriteLine(tmp[i]);
+                    writer.Flush();
+                    writer.Close();
                     stream.Close();
+                    File.Delete("3.txt");
+                    File.Move(dirname + '\\' + res_swarm + '_' + configuration.SwarmPoolSize.ToString() + '_' + configuration.SwarmA1.ToString() + '_' + configuration.SwarmA2.ToString() + '_' + configuration.SwarmXLimit.ToString() + '_' + configuration.SwarmVLimit.ToString() + extension, "3.txt");
                 }
-                else tmp_back.AddRange(new String[_count]);
-                if (File.Exists("4.txt"))
-                {
-                    FileStream stream = new FileStream("4.txt", FileMode.Open);
-                    StreamReader reader = new StreamReader(stream);
-                    while (!reader.EndOfStream)
-                    {
-                        tmp_gen.Add(reader.ReadLine());
-                    }
-                    stream.Close();
-                }
-                else tmp_gen.AddRange(new String[_count]);
-                Swarm swarm = new Swarm(size, 0.1, 0);
-                swarm.UpdateCoords(_input1, _output1);
-                //FISwarm fiswarm = new FISwarm(size);
-                //fiswarm.UpdateCoords(_input1, _output1);
-                Web web = new Web(size);
-                Genetic genetic = new Genetic();
-                Stopwatch swarm_stopwatch = new Stopwatch();
-                Stopwatch fiswarm_stopwatch = new Stopwatch();
-                Stopwatch back_stopwatch = new Stopwatch();
-                Stopwatch gen_stopwatch = new Stopwatch();
-                ProgressBar bar = new ProgressBar(_count, 100);
-                int l = 0;
-                bar.SetValue(0);
-                Console.WriteLine(bar);
-                for (int i = 0; i < _count; i++)
-                {
-                    bar.SetValue(i);
-                    if (bar.GetLength() != l)
-                    {
-                        l = bar.GetLength();
-                        Console.SetCursorPosition(0, 1);
-                        Console.WriteLine(bar);
-                    }
-                    swarm_stopwatch.Restart();
-                    swarm.Move(_input1, _output1);
-                    swarm_stopwatch.Stop();
-                    //fiswarm_stopwatch.Restart();
-                    //fiswarm.Move(_input1, _output1);
-                    //fiswarm_stopwatch.Stop();
-                    back_stopwatch.Restart();
-                    web.Teach(_input1, _output1);
-                    back_stopwatch.Stop();
-                    gen_stopwatch.Restart();
-                    genetic.Generate(_input1, _output1);
-                    gen_stopwatch.Stop();
-                    tmp_swarm[i] += (swarm.GetMistake(_input2, _output2) / (_output2.GetLength(0) * _output2.GetLength(1))).ToString() + "\t" + swarm_stopwatch.ElapsedMilliseconds.ToString() + "\t\t";
-                    //tmp_fiswarm[i] += fiswarm.GetMistake(_input2, _output2).ToString() + "\t" + fiswarm_stopwatch.ElapsedMilliseconds.ToString() + "\t\t";
-                    tmp_back[i] += (web.GetMistake(_input2, _output2) / (_output2.GetLength(0) * _output2.GetLength(1))).ToString() + "\t" + back_stopwatch.ElapsedMilliseconds.ToString() + "\t\t";
-                    tmp_gen[i] += (genetic.GetMistake(_input2, _output2) / (_output2.GetLength(0) * _output2.GetLength(1))).ToString() + "\t" + gen_stopwatch.ElapsedMilliseconds.ToString() + "\t\t";
-                }
-                for (int i = 0; i < tmp_gen.Count; i++)
-                {
-                    GenWriter.WriteLine(tmp_gen[i]);
-                }
-                for (int i = 0; i < tmp_swarm.Count; i++)
-                {
-                    SwarmWriter.WriteLine(tmp_swarm[i]);
-                }
-                /*for (int i = 0; i < tmp_fiswarm.Count; i++)
-                {
-                    FISwarmWriter.WriteLine(tmp_fiswarm[i]);
-                }*/
-                for (int i = 0; i < tmp_back.Count; i++)
-                {
-                    BackWriter.WriteLine(tmp_back[i]);
-                }
-                GenWriter.Flush();
-                GenWriter.Close();
-                BackWriter.Flush();
-                BackWriter.Close();
-                SwarmWriter.Flush();
-                SwarmWriter.Close();
-                FISwarmWriter.Flush();
-                FISwarmWriter.Close();
-                File.Delete("1.txt");
-                File.Delete("2.txt");
-                File.Delete("3.txt");
-                File.Delete("4.txt");
-                File.Move(res_swarm, "1.txt");
-                File.Move(res_fiswarm, "2.txt");
-                File.Move(res_back, "3.txt");
-                File.Move(res_gen, "4.txt");
             }
-            File.Move("1.txt", res_swarm);
-            File.Move("2.txt", res_fiswarm);
-            File.Move("3.txt", res_back);
-            File.Move("4.txt", res_gen);
-
-
-            //ProgressBar MainBar = new ProgressBar(_webs, 100);
-            //File.Delete("1.txt");
-            //File.Delete("2.txt");
-            //File.Delete("3.txt");
-            //for (int z = 0; z < _webs; z++)
-            //{
-            //    Console.SetCursorPosition(0, 0);
-            //    MainBar.SetValue(z);
-            //    Console.WriteLine(MainBar);
-            //    FileStream stream_1 = new FileStream("res_swarm_0.05_0.01.txt", FileMode.Create);
-            //    StreamWriter writer_1 = new StreamWriter(stream_1);
-            //    FileStream stream_2 = new FileStream("res_swarm_0.1_0.05.txt", FileMode.Create);
-            //    StreamWriter writer_2 = new StreamWriter(stream_2);
-            //    FileStream stream_3 = new FileStream("res_swarm_0.5_0.1.txt", FileMode.Create);
-            //    StreamWriter writer_3 = new StreamWriter(stream_3);
-            //    List<String> tmp_1 = new List<string>();
-            //    List<String> tmp_2 = new List<string>();
-            //    List<String> tmp_3 = new List<string>();
-            //    if (File.Exists("1.txt"))
-            //    {
-            //        FileStream stream = new FileStream("1.txt", FileMode.Open);
-            //        StreamReader reader = new StreamReader(stream);
-            //        while (!reader.EndOfStream)
-            //        {
-            //            tmp_1.Add(reader.ReadLine());
-            //        }
-            //        stream.Close();
-            //    }
-            //    else tmp_1.AddRange(new String[_count]);
-            //    if (File.Exists("2.txt"))
-            //    {
-            //        FileStream stream = new FileStream("2.txt", FileMode.Open);
-            //        StreamReader reader = new StreamReader(stream);
-            //        while (!reader.EndOfStream)
-            //        {
-            //            tmp_2.Add(reader.ReadLine());
-            //        }
-            //        stream.Close();
-            //    }
-            //    else tmp_2.AddRange(new String[_count]);
-            //    if (File.Exists("3.txt"))
-            //    {
-            //        FileStream stream = new FileStream("3.txt", FileMode.Open);
-            //        StreamReader reader = new StreamReader(stream);
-            //        while (!reader.EndOfStream)
-            //        {
-            //            tmp_3.Add(reader.ReadLine());
-            //        }
-            //        stream.Close();
-            //    }
-            //    else tmp_3.AddRange(new String[_count]);
-            //    Swarm swarm_1 = new Swarm(size, 0.05, 0.01);
-            //    swarm_1.UpdateCoords(_input1, _output1);
-            //    Swarm swarm_2 = new Swarm(size, 0.1, 0.05);
-            //    swarm_2.UpdateCoords(_input1, _output1);
-            //    Swarm swarm_3 = new Swarm(size, 0.5, 0.1);
-            //    swarm_3.UpdateCoords(_input1, _output1);
-            //    ProgressBar bar = new ProgressBar(_count, 100);
-            //    bar.SetValue(0);
-            //    Console.WriteLine(bar);
-            //    int l = 0;
-            //    for (int i = 0; i < _count; i++)
-            //    {
-            //        bar.SetValue(i);
-            //        if (bar.GetLength() != l)
-            //        {
-            //            l = bar.GetLength();
-            //            Console.SetCursorPosition(0, 1);
-            //            Console.WriteLine(bar);
-            //        }
-            //        swarm_1.Move(_input1, _output1);
-            //        swarm_2.Move(_input1, _output1);
-            //        swarm_3.Move(_input1, _output1);
-            //        tmp_1[i] += swarm_1.GetMistake(_input2, _output2).ToString() + '\t';
-            //        tmp_2[i] += swarm_2.GetMistake(_input2, _output2).ToString() + '\t';
-            //        tmp_3[i] += swarm_3.GetMistake(_input2, _output2).ToString() + '\t';
-            //    }
-            //    for (int i = 0; i < tmp_1.Count; i++)
-            //    {
-            //        writer_1.WriteLine(tmp_1[i]);
-            //        writer_2.WriteLine(tmp_2[i]);
-            //        writer_3.WriteLine(tmp_3[i]);
-            //    }
-            //    writer_1.Flush();
-            //    writer_1.Close();
-            //    stream_1.Close();
-            //    writer_2.Flush();
-            //    writer_2.Close();
-            //    stream_2.Close();
-            //    writer_3.Flush();
-            //    writer_3.Close();
-            //    stream_3.Close();
-            //    File.Delete("1.txt");
-            //    File.Delete("2.txt");
-            //    File.Delete("3.txt");
-            //    File.Move("res_swarm_0.05_0.01.txt", "1.txt");
-            //    File.Move("res_swarm_0.1_0.05.txt", "2.txt");
-            //    File.Move("res_swarm_0.5_0.1.txt", "3.txt");
-            //}
-            //File.Move("1.txt", "res_swarm_0.05_0.01.txt");
-            //File.Move("2.txt", "res_swarm_0.1_0.05.txt");
-            //File.Move("3.txt", "res_swarm_0.5_0.1.txt");
+            File.Move("1.txt", dirname + '\\' + res_back + '_' + configuration.BackInfluence.ToString() + extension);
+            File.Move("2.txt", dirname + '\\' + res_gen + '_' + configuration.GenPoolSize.ToString() + '_' + configuration.GenMutateTime.ToString() + '_' + configuration.GenChange.ToString() + '_' + configuration.GenChange.ToString() + '_' + configuration.GenElite.ToString() + '_' + configuration.GenBirth.ToString() + '_' + configuration.GenM.ToString() + extension);
+            File.Move("3.txt", dirname + '\\' + res_swarm + '_' + configuration.SwarmPoolSize.ToString() + '_' + configuration.SwarmA1.ToString() + '_' + configuration.SwarmA2.ToString() + '_' + configuration.SwarmXLimit.ToString() + '_' + configuration.SwarmVLimit.ToString() + extension);
         }
     }
 }

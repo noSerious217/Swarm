@@ -2,9 +2,11 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -13,89 +15,295 @@ namespace Swarm_Utility
 {
     public partial class Form1 : Form
     {
+        private bool changed = true;
         public Form1()
         {
             InitializeComponent();
+            if (File.Exists("mlp.conf"))
+            {
+                System.Xml.Serialization.XmlSerializer reader = new System.Xml.Serialization.XmlSerializer(typeof(Configuration));
+                StreamReader file = new StreamReader(@"mlp.conf");
+                Configuration configuration = (Configuration)reader.Deserialize(file);
+                file.Close();
+                textBox1.Text = configuration.Filename;
+                textBox2.Text = "";
+                for (int i = 0; i < configuration.Size.Length; i++)
+                    textBox2.Text += configuration.Size[i].ToString() + ';';
+                textBox2.Text = textBox2.Text.TrimEnd(';');
+                if (configuration.BackEnabled)
+                {
+                    checkBox1.Checked = true;
+                    textBox3.Text = configuration.BackInfluence.ToString();
+                }
+                else checkBox1.Checked = false;
+                if (configuration.GenEnabled)
+                {
+                    checkBox2.Checked = true;
+                    numericUpDown1.Value = configuration.GenPoolSize;
+                    numericUpDown2.Value = configuration.GenMutateTime;
+                    textBox11.Text = configuration.GenMutate.ToString();
+                    textBox12.Text = configuration.GenChange.ToString();
+                    textBox13.Text = configuration.GenElite.ToString();
+                    textBox14.Text = configuration.GenBirth.ToString();
+                    numericUpDown4.Value = configuration.GenM;
+                }
+                else checkBox2.Checked = false;
+                if (configuration.SwarmEnabled)
+                {
+                    checkBox3.Checked = true;
+                    numericUpDown3.Value = configuration.SwarmPoolSize;
+                    textBox5.Text = configuration.SwarmA1.ToString();
+                    textBox6.Text = configuration.SwarmA2.ToString();
+                    textBox7.Text = configuration.SwarmXLimit.ToString();
+                    textBox8.Text = configuration.SwarmVLimit.ToString();
+                }
+                else checkBox3.Checked = false;
+                numericUpDown5.Value = configuration.Webs;
+                numericUpDown6.Value = configuration.Count;
+            }
         }
 
-        static long FactFactor(int n)
+        private void checkBox1_CheckedChanged(object sender, EventArgs e)
         {
-            if (n < 0)
-                return 0;
-            if (n == 0)
-                return 1;
-            if (n == 1 || n == 2)
-                return n;
-            bool[] u = new bool[n + 1]; // маркеры для решета Эратосфена
-            List<Tuple<int, int>> p = new List<Tuple<int, int>>(); // множители и их показатели степеней
-            for (int i = 2; i <= n; ++i)
-                if (!u[i]) // если i - очередное простое число
-                {
-                    // считаем показатель степени в разложении
-                    int k = n / i;
-                    int c = 0;
-                    while (k > 0)
-                    {
-                        c += k;
-                        k /= i;
-                    }
-                    // запоминаем множитель и его показатель степени
-                    p.Add(new Tuple<int, int>(i, c));
-                    // просеиваем составные числа через решето               
-                    int j = 2;
-                    while (i * j <= n)
-                    {
-                        u[i * j] = true;
-                        ++j;
-                    }
-                }
-            // вычисляем факториал
-            long r = 1;
-            for (int i = p.Count() - 1; i >= 0; --i)
-                r *= (long)Math.Pow(p[i].Item1, p[i].Item2);
-            return r;
+            panel4.Enabled = checkBox1.Checked;
+            changed = true;
+        }
+
+        private void checkBox2_CheckedChanged(object sender, EventArgs e)
+        {
+            panel3.Enabled = checkBox2.Checked;
+            changed = true;
+        }
+
+        private void checkBox3_CheckedChanged(object sender, EventArgs e)
+        {
+            panel2.Enabled = checkBox3.Checked;
+            changed = true;
         }
 
         private void button1_Click(object sender, EventArgs e)
         {
-            Random random = new Random();
-            try
+            Save();
+        }
+
+        private void textBox1_TextChanged(object sender, EventArgs e)
+        {
+            changed = true;
+        }
+
+        private void textBox2_TextChanged(object sender, EventArgs e)
+        {
+            changed = true;
+        }
+
+        private void textBox3_TextChanged(object sender, EventArgs e)
+        {
+            changed = true;
+        }
+
+        private void numericUpDown1_ValueChanged(object sender, EventArgs e)
+        {
+            changed = true;
+        }
+
+        private void numericUpDown2_ValueChanged(object sender, EventArgs e)
+        {
+            changed = true;
+        }
+
+        private void textBox11_TextChanged(object sender, EventArgs e)
+        {
+            changed = true;
+        }
+
+        private void textBox12_TextChanged(object sender, EventArgs e)
+        {
+            changed = true;
+        }
+
+        private void textBox13_TextChanged(object sender, EventArgs e)
+        {
+            changed = true;
+        }
+
+        private void textBox14_TextChanged(object sender, EventArgs e)
+        {
+            changed = true;
+        }
+
+        private void numericUpDown4_ValueChanged(object sender, EventArgs e)
+        {
+            changed = true;
+        }
+
+        private void numericUpDown3_ValueChanged(object sender, EventArgs e)
+        {
+            changed = true;
+        }
+
+        private void textBox5_TextChanged(object sender, EventArgs e)
+        {
+            changed = true;
+        }
+
+        private void textBox6_TextChanged(object sender, EventArgs e)
+        {
+            changed = true;
+        }
+
+        private void textBox7_TextChanged(object sender, EventArgs e)
+        {
+            changed = true;
+        }
+
+        private void textBox8_TextChanged(object sender, EventArgs e)
+        {
+            changed = true;
+        }
+
+        private void Save()
+        {
+            if (changed)
             {
-                progressBar1.Maximum = (int)numericUpDown1.Value;
-                FileStream stream = new FileStream(textBox1.Text + ".txt", FileMode.Create);
-                StreamWriter writer = new StreamWriter(stream);
-                for (int i = 0; i < numericUpDown1.Value; i++)
+                Configuration configuration = new Configuration();
+                configuration.Filename = textBox1.Text;
+                string[] s_size = textBox2.Text.Split(';');
+                int[] size = new int[s_size.Length];
+                for (int i = 0; i < s_size.Length; i++)
                 {
-                    progressBar1.Value = i;
-                    double x1 = random.NextDouble() * 49 + 1;
-                    double x2 = random.NextDouble() * 49 + 1;
-                    double x3 = random.NextDouble() * 49 + 1;
-                    writer.Write(x1);
-                    writer.Write('\t');
-                    writer.Write(x2);
-                    writer.Write('\t');
-                    writer.Write(x3);
-                    writer.Write('|');
-                    double y1, y2, y3 = 0;
-                    y1 = Math.Pow(x1, 3) * Math.Cos(x2) / ((Math.Log(x3) + Math.Sin(x1)) * Math.Pow(x2, 2));
-                    writer.Write(y1);
-                    writer.Write('\t');
-                    y2 = (x1 - x2) / (x3 - x2) + Math.Cos(x1) * Math.Sin(x2);
-                    writer.Write(y2);
-                    writer.Write('\t');
-                    y3 = (x1 * x2 + x2 * x3 + x3 * x1) * Math.Sin(x1) * Math.Cos(x2) / (Math.Sin(x1) + Math.Cos(x2) + Math.Log(x3));
-                    writer.WriteLine(y3);
+                    if (!int.TryParse(s_size[i], out size[i]))
+                    {
+                        MessageBox.Show("Неверный формат данных в поле 'Размер сети'!");
+                        return;
+                    }
                 }
-                progressBar1.Value = 0;
-                writer.Flush();
-                writer.Close();
+                configuration.Size = size;
+                configuration.Webs = (int)numericUpDown5.Value;
+                configuration.Count = (int)numericUpDown6.Value;
+                if (checkBox1.Checked)
+                {
+                    configuration.BackEnabled = true;
+                    double d;
+                    if (!double.TryParse(textBox3.Text.Replace('.',','), out d))
+                    {
+                        MessageBox.Show("Неверный формат числа в поле 'Коэффициент обучения'!");
+                        return;
+                    }
+                    else configuration.BackInfluence = d;
+                }
+                else configuration.BackEnabled = false;
+                if (checkBox2.Checked)
+                {
+                    configuration.GenEnabled = true;
+                    configuration.GenPoolSize = (int)numericUpDown1.Value;
+                    configuration.GenMutateTime = (int)numericUpDown2.Value;
+                    double d;
+                    if (!double.TryParse(textBox11.Text.Replace('.', ','), out d))
+                    {
+                        MessageBox.Show("Неверный формат числа в поле 'Вероятность мутации'!");
+                        return;
+                    }
+                    else configuration.GenMutate = d;
+                    if (!double.TryParse(textBox12.Text.Replace('.', ','), out d))
+                    {
+                        MessageBox.Show("Неверный формат числа в поле 'Вероятность сдвига веса'!");
+                        return;
+                    }
+                    else configuration.GenChange = d;
+                    if (!double.TryParse(textBox13.Text.Replace('.', ','), out d))
+                    {
+                        MessageBox.Show("Неверный формат числа в поле 'Доля элиты'!");
+                        return;
+                    }
+                    else configuration.GenElite = d;
+                    if (!double.TryParse(textBox14.Text.Replace('.', ','), out d))
+                    {
+                        MessageBox.Show("Неверный формат числа в поле 'Доля рожденных'!");
+                        return;
+                    }
+                    else configuration.GenBirth = d;
+                    configuration.GenM = (int)numericUpDown4.Value;
+                }
+                else configuration.GenEnabled = false;
+                if (checkBox3.Checked)
+                {
+                    configuration.SwarmEnabled = true;
+                    configuration.SwarmPoolSize = (int)numericUpDown3.Value;
+                    double d;
+                    if (!double.TryParse(textBox5.Text.Replace('.', ','), out d))
+                    {
+                        MessageBox.Show("Неверный формат числа в поле 'Влияние локального ускорения'!");
+                        return;
+                    }
+                    else configuration.SwarmA1 = d;
+                    if (!double.TryParse(textBox6.Text.Replace('.', ','), out d))
+                    {
+                        MessageBox.Show("Неверный формат числа в поле 'Влияние глобального ускорения'!");
+                        return;
+                    }
+                    else configuration.SwarmA2 = d;
+                    if (!double.TryParse(textBox7.Text.Replace('.', ','), out d))
+                    {
+                        MessageBox.Show("Неверный формат числа в поле 'Разброс координат'!");
+                        return;
+                    }
+                    else configuration.SwarmXLimit = d;
+                    if (!double.TryParse(textBox8.Text.Replace('.', ','), out d))
+                    {
+                        MessageBox.Show("Неверный формат числа в поле 'Разброс скорости'!");
+                        return;
+                    }
+                    else configuration.SwarmVLimit = d;
+                }
+                else configuration.SwarmEnabled = false;
+                if (File.Exists("mlp.conf"))
+                {
+                    if (MessageBox.Show("Файл настроек уже существует. Перезаписать?", "Внимание!", MessageBoxButtons.YesNo) == DialogResult.Yes)
+                    {
+                        File.Delete("mlp.conf");
+                    }
+                    else return;
+                }
+                System.Xml.Serialization.XmlSerializer writer = new System.Xml.Serialization.XmlSerializer(typeof(Configuration));
+                FileStream stream = File.Create("mlp.conf");
+                writer.Serialize(stream, configuration);
                 stream.Close();
-                MessageBox.Show("Успешно!");
+                changed = false;
             }
-            catch (Exception ex)
+            MessageBox.Show("Успешно!");
+        }
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (changed)
             {
-                MessageBox.Show(ex.Message);
+                if (MessageBox.Show("Хотите сохранить данные перед выходом?", "Внимание", MessageBoxButtons.YesNo) == DialogResult.Yes)
+                {
+                    Save();
+                }
             }
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            Save();
+            Process.Start("Swarm_Net.exe");
+            this.Close();
+        }
+
+        private void textBox4_TextChanged(object sender, EventArgs e)
+        {
+            changed = false;
+        }
+
+        private void numericUpDown5_ValueChanged(object sender, EventArgs e)
+        {
+            changed = true;
+        }
+
+        private void numericUpDown6_ValueChanged(object sender, EventArgs e)
+        {
+            changed = true;
         }
     }
 }

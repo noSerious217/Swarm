@@ -9,20 +9,39 @@ namespace Swarm_Net
 {
     class Genetic
     {
-        private const int _poolsize = 50;
-        private const int _mutatetime = 20;
-        private const double _mutate = 0.01;
-        private const double _elite = 0.1;
-        private const double _birth = 0.5;
-        private const int m = 10;
+        private int _poolsize = 50;
+        private int _mutatetime = 20;
+        private double _mutaterate = 0.01;
+        private double _change = 0.75;
+        private double _elite = 0.1;
+        private double _birthrate = 0.5;
+        private int m = 20;
         private List<Web> _pool;
 
         public static int[] size = new int[] { 15, 15, 15 };
 
+        public int Poolsize { get => _poolsize; set => _poolsize = value; }
+        public int Mutatetime { get => _mutatetime; set => _mutatetime = value; }
+        public double MutateRate { get => _mutaterate; set => _mutaterate = value; }
+        public double Change { get => _change; set => _change = value; }
+        public double Elite { get => _elite; set => _elite = value; }
+        public double BirthRate { get => _birthrate; set => _birthrate = value; }
+        public int M { get => m; set => m = value; }
+
         public Genetic()
         {
             _pool = new List<Web>();
-            for (int i = 0; i < _poolsize; i++)
+            for (int i = 0; i < Poolsize; i++)
+            {
+                _pool.Add(new Web(size));
+            }
+        }
+
+        public Genetic(int Poolsize)
+        {
+            this.Poolsize = Poolsize;
+            _pool = new List<Web>();
+            for (int i = 0; i < this.Poolsize; i++)
             {
                 _pool.Add(new Web(size));
             }
@@ -84,22 +103,26 @@ namespace Swarm_Net
             int length = _pool.Count;
             for (int z = 0; z < length; z++)
             {
-                if (Utility.NextDouble() < _mutate)
+                if (Utility.NextDouble() < MutateRate)
                 {
                     Web origin = _pool[z];
                     double[][,] tmp = origin.GetWeight();
-                    int time = Utility.Next(_mutatetime + 1);
+                    int time = Utility.Next(Mutatetime + 1);
                     for (int i = 0; i < time; i++)
                     {
                         int l = Utility.Next(tmp.Length);
                         int a = Utility.Next(tmp[l].GetLength(0));
                         int b = Utility.Next(tmp[l].GetLength(1));
-                        double d = 0;
-                        for (int q = 0; q < m; q++)
+                        if (Utility.NextDouble() < Change)
                         {
-                            d += (Utility.NextDouble() < (1 / m)) ? Math.Pow(2, -i) : 0;
+                            double d = 0;
+                            for (int q = 0; q < M; q++)
+                            {
+                                d += (Utility.NextDouble() < (1 / M)) ? Math.Pow(2, -i) : 0;
+                            }
+                            tmp[l][a, b] += d * Math.Sign(Utility.NextDouble() - 0.5);
                         }
-                        tmp[l][a, b] += d * Math.Sign(Utility.NextDouble() - 0.5);
+                        else tmp[l][a, b] = (Utility.NextDouble() - 0.5);
                     }
                     Web res = new Web(size);
                     res.SetWeight(tmp);
@@ -110,7 +133,7 @@ namespace Swarm_Net
 
         private void Birth()
         {
-            for (int i = 0; i < _poolsize * _birth + 1; i++)
+            for (int i = 0; i < Poolsize * BirthRate + 1; i++)
             {
                 Web f = _pool.ElementAt(Utility.Next(_pool.Count));
                 Web m = _pool.ElementAt(Utility.Next(_pool.Count));
@@ -145,9 +168,9 @@ namespace Swarm_Net
         {
             List<Web> NewPool = new List<Web>();
             _pool.Sort();
-            for (int i = 0; i < _poolsize * _elite; i++)
+            for (int i = 0; i < Poolsize * Elite; i++)
                 NewPool.Add(_pool[i]);
-            while (NewPool.Count<_poolsize)
+            while (NewPool.Count<Poolsize)
             {
                 NewPool.Add(_pool.ElementAt(Utility.Next(Utility.Next(_pool.Count))));
             }

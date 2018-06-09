@@ -10,7 +10,7 @@ namespace MLP
     [Serializable]
     public class Neuron
     {
-        public static double a = 0.05;
+        internal double a;
         private double[] _weights;
         private double _o;
         public double[] Input;
