@@ -50,10 +50,5 @@ namespace Swarm_Utility
         public bool GenEnabled { get => genEnabled; set => genEnabled = value; }
         public int Count { get => count; set => count = value; }
         public int Webs { get => webs; set => webs = value; }
-
-        public Configuration()
-        {
-
-        }
     }
 }
